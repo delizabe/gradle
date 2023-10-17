@@ -42,7 +42,6 @@ public interface LinksStrategy extends Serializable {
      * Preserve relative symlinks, throw an exception if a symlink points outside the root directory of copy spec.
      * It also throws an exception for broken links and links pointing to another link.
      */
-    //TODO: check if it's relative to the original path
     LinksStrategy PRESERVE_RELATIVE = new LinksStrategy() {
         @Override
         public boolean shouldBePreserved(@Nullable SymbolicLinkDetails linkDetails, String originalPath) {
