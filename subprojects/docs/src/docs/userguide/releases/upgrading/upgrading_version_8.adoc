@@ -47,6 +47,34 @@ The `groovy-base` plugin is now responsible for configuring source and target co
 If you are using this task *without applying `grooy-base`*, you will have to manually set compatibility versions on these tasks.
 In general, the `groovy-base` plugin should be applied whenever working with Groovy language tasks.
 
+[[deprecated_missing_project_directory]]
+==== Including projects without an existing directory
+
+Gradle will warn if a project is added to the build where the associated `projectDir` does not exist or is not writable.
+Starting with version 9.0 Gradle will refuse to run builds where any project directory is missing or read-only.
+If you intend to dynamically synthesize projects make sure to create directories for them as well:
+
+=====
+[.multi-language-sample]
+======
+.settings.gradle.kts
+[source,kotlin]
+----
+include("project-without-directory")
+project(":project-without-directory").projectDir.mkdir()
+----
+======
+[.multi-language-sample]
+======
+.settings.gradle
+[source,groovy]
+----
+include 'project-without-directory'
+project(":project-without-directory").projectDir.mkdir()
+----
+======
+=====
+
 [[changes_8.4]]
 == Upgrading from 8.3 and earlier
 
