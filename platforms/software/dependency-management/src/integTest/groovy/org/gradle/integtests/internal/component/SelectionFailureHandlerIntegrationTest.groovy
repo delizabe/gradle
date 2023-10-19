@@ -17,42 +17,69 @@
 package org.gradle.integtests.internal.component
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
+import org.gradle.internal.component.AmbiguousGraphVariantsException
+import org.gradle.internal.component.NoMatchingGraphVariantsException
 import org.gradle.test.fixtures.dsl.GradleDsl
+import org.gradle.util.GradleVersion
 
 /**
  * These tests demonstrate the behavior of the [SelectionFailureHandler] when a project has various
  * variant selection failures.
  */
 class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
-    def "demonstrate project ambiguous variant selection failure"() {
+    // region resolution failures
+    def "demonstrate ambiguous graph variant selection failure for project"() {
         buildKotlinFile << """
             ${setupAmbiguousVariantSelectionFailureForProject()}
             ${forceConsumerResolution()}
         """
 
         expect:
-        fails "forceResolution"
+        fails "forceResolution", "--stacktrace"
+        failure.assertHasErrorOutput("Caused by: " + AmbiguousGraphVariantsException.class.getName())
         failure.assertHasDescription("Could not determine the dependencies of task ':forceResolution'.")
+        failure.assertHasCause("Could not resolve all task dependencies for configuration ':resolveMe'.")
+        failure.assertHasCause("Could not resolve project :.")
         failure.assertHasErrorOutput("The consumer was configured to find attribute 'color' with value 'blue'. However we cannot choose between the following variants of project ::")
     }
 
-    def "demonstrate incompatible graph variants selection failure"() {
+    def "demonstrate ambiguous graph variant selection failure for externalDep"() {
         buildKotlinFile << """
-            ${setupIncompatibleVariantsSelectionFailureForProject()}
+            ${setupAmbiguousVariantSelectionFailureForExternalDep()}
             ${forceConsumerResolution()}
         """
 
         expect:
-        fails "outgoingVariants", "forceResolution"
+        fails "forceResolution", "--stacktrace"
+        failure.assertHasErrorOutput("Caused by: " + AmbiguousGraphVariantsException.class.getName())
         failure.assertHasDescription("Could not determine the dependencies of task ':forceResolution'.")
-        failure.assertHasErrorOutput("Incompatible because this component declares attribute 'color' with value 'blue' and the consumer needed attribute 'color' with value 'green'")
+        failure.assertHasCause("Could not resolve all task dependencies for configuration ':resolveMe'.")
+        failure.assertHasCause("Could not resolve project :.")
+        failure.assertHasErrorOutput("The consumer was configured to find attribute 'color' with value 'blue'. However we cannot choose between the following variants of project ::")
     }
 
+    def "demonstrate no matching graph variants selection failure for project"() {
+        buildKotlinFile << """
+            ${setupNoMatchingGraphVariantsSelectionFailureForProject()}
+            ${forceConsumerResolution()}
+        """
+
+        expect:
+        fails "outgoingVariants", "forceResolution", "--stacktrace"
+        failure.assertHasErrorOutput("Caused by: " + NoMatchingGraphVariantsException.class.getName())
+        failure.assertHasDescription("Could not determine the dependencies of task ':forceResolution'.")
+        failure.assertHasCause("Could not resolve all task dependencies for configuration ':resolveMe'.")
+        failure.assertHasCause("Could not resolve project :.")
+        failure.assertHasErrorOutput("Incompatible because this component declares attribute 'color' with value 'blue' and the consumer needed attribute 'color' with value 'green'")
+    }
+    // endregion resolution failures
+
+    // region dependencyInsight failures
     /**
      * Running the dependencyInsight report can also generate a variant selection failure, but this
      * does <strong>NOT</strong> cause the task to fail.
      */
-    def "demonstrate dependencyInsight report containing no matching capabilities failure"() {
+    def "demonstrate dependencyInsight report no matching capabilities failure"() {
         buildKotlinFile << """
             ${setupDependencyInsightFailure()}
         """
@@ -62,9 +89,11 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
         outputContains("Could not resolve com.google.code.gson:gson:2.8.5.")
         outputContains("""Failures:
       - Could not resolve com.google.code.gson:gson:2.8.5.
-        Review the variant matching algorithm documentation at https://docs.gradle.org/8.5-20231011040000+0000/userguide/variant_attributes.html#abm_algorithm:""")
+        Review the variant matching algorithm documentation at https://docs.gradle.org/${GradleVersion.current().version}/userguide/variant_attributes.html#abm_algorithm:""")
     }
+    // endregion dependencyInsight failures
 
+    // region setup
     private String setupAmbiguousVariantSelectionFailureForProject() {
         return """
             val color = Attribute.of("color", String::class.java)
@@ -74,12 +103,10 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
                 consumable("blueRoundElements") {
                     attributes.attribute(color, "blue")
                     attributes.attribute(shape, "round")
-                    outgoing.artifact(file("a1.jar"))
                 }
                 consumable("blueSquareElements") {
                     attributes.attribute(color, "blue")
                     attributes.attribute(shape, "square")
-                    outgoing.artifact(file("a2.jar"))
                 }
 
                 dependencyScope("blueFilesDependencies")
@@ -96,7 +123,28 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
         """
     }
 
-    private String setupIncompatibleVariantsSelectionFailureForProject() {
+    private String setupAmbiguousVariantSelectionFailureForExternalDep() {
+        return """
+            ${mavenCentralRepository(GradleDsl.KOTLIN)}
+
+            configurations {
+                dependencyScope("myLibs")
+
+                resolvable("resolveMe") {
+                    extendsFrom(configurations.getByName("myLibs"))
+                    attributes {
+                        attribute(Category.CATEGORY_ATTRIBUTE, project.objects.named(Category::class.java, Category.LIBRARY))
+                    }
+                }
+            }
+
+            dependencies {
+                add("myLibs", "com.squareup.okhttp3:okhttp:4.4.0")
+            }
+        """
+    }
+
+    private String setupNoMatchingGraphVariantsSelectionFailureForProject() {
         return """
             plugins {
                 id("base")
@@ -144,7 +192,11 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
         return """
             val forceResolution by tasks.registering {
                 inputs.files(configurations.getByName("resolveMe"))
+                doLast {
+                    inputs.files.files.forEach { println(it) }
+                }
             }
         """
     }
+    // endregion setup
 }
