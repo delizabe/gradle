@@ -52,10 +52,10 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
         expect:
         fails "forceResolution", "--stacktrace"
         failure.assertHasErrorOutput("Caused by: " + AmbiguousGraphVariantsException.class.getName())
-        failure.assertHasDescription("Could not determine the dependencies of task ':forceResolution'.")
-        failure.assertHasCause("Could not resolve all task dependencies for configuration ':resolveMe'.")
-        failure.assertHasCause("Could not resolve project :.")
-        failure.assertHasErrorOutput("The consumer was configured to find attribute 'color' with value 'blue'. However we cannot choose between the following variants of project ::")
+        failure.assertHasDescription("Execution failed for task ':forceResolution'")
+        failure.assertHasCause("Could not resolve all files for configuration ':resolveMe'.")
+        failure.assertHasCause("Could not resolve com.squareup.okhttp3:okhttp:4.4.0.")
+        failure.assertHasErrorOutput("The consumer was configured to find attribute 'org.gradle.category' with value 'documentation'. However we cannot choose between the following variants of com.squareup.okhttp3:okhttp:4.4.0:")
     }
 
     def "demonstrate no matching graph variants selection failure for project"() {
@@ -65,7 +65,7 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
         """
 
         expect:
-        fails "outgoingVariants", "forceResolution", "--stacktrace"
+        fails "forceResolution", "--stacktrace"
         failure.assertHasErrorOutput("Caused by: " + NoMatchingGraphVariantsException.class.getName())
         failure.assertHasDescription("Could not determine the dependencies of task ':forceResolution'.")
         failure.assertHasCause("Could not resolve all task dependencies for configuration ':resolveMe'.")
@@ -133,7 +133,7 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
                 resolvable("resolveMe") {
                     extendsFrom(configurations.getByName("myLibs"))
                     attributes {
-                        attribute(Category.CATEGORY_ATTRIBUTE, project.objects.named(Category::class.java, Category.LIBRARY))
+                        attribute(Category.CATEGORY_ATTRIBUTE, project.objects.named(Category::class.java, Category.DOCUMENTATION))
                     }
                 }
             }
