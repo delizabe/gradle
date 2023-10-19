@@ -18,6 +18,7 @@ package org.gradle.integtests.internal.component
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
 import org.gradle.internal.component.AmbiguousGraphVariantsException
+import org.gradle.internal.component.IncompatibleGraphVariantsException
 import org.gradle.internal.component.NoMatchingGraphVariantsException
 import org.gradle.test.fixtures.dsl.GradleDsl
 import org.gradle.util.GradleVersion
@@ -86,6 +87,22 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
         failure.assertHasCause("Could not resolve all files for configuration ':resolveMe'.")
         failure.assertHasCause("Could not resolve com.squareup.okhttp3:okhttp:4.4.0.")
         failure.assertHasErrorOutput("No matching variant of com.squareup.okhttp3:okhttp:4.4.0 was found. The consumer was configured to find attribute 'org.gradle.category' with value 'non-existent-format' but:")
+    }
+
+    def "demonstrate incompatible graph variants selection failure"() {
+        buildKotlinFile << """
+            ${setupIncompatibleGraphVariantsSelectionFailureForProject()}
+            ${forceConsumerResolution()}
+        """
+
+        expect:
+        fails "forceResolution", "--stacktrace"
+        failure.assertHasErrorOutput("Caused by: " + IncompatibleGraphVariantsException.class.getName())
+        failure.assertHasDescription("Could not determine the dependencies of task ':forceResolution'.")
+        failure.assertHasCause("Could not resolve all task dependencies for configuration ':resolveMe'.")
+        failure.assertHasCause("Could not resolve project :.")
+        failure.assertHasErrorOutput("Configuration 'mismatch' in project : does not match the consumer attributes")
+
     }
     // endregion resolution failures
 
@@ -203,6 +220,33 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
 
             dependencies {
                 add("myLibs", "com.squareup.okhttp3:okhttp:4.4.0")
+            }
+        """
+    }
+
+    private String setupIncompatibleGraphVariantsSelectionFailureForProject() {
+        return """
+            plugins {
+                id("base")
+            }
+
+            val color = Attribute.of("color", String::class.java)
+
+            configurations {
+                val mismatch by configurations.creating {
+                    attributes.attribute(color, "blue")
+                }
+
+                dependencyScope("defaultDependencies")
+
+                resolvable("resolveMe") {
+                    extendsFrom(configurations.getByName("defaultDependencies"))
+                    attributes.attribute(color, "green")
+                }
+            }
+
+            dependencies {
+                add("defaultDependencies", project(":", "mismatch"))
             }
         """
     }
