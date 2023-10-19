@@ -882,7 +882,6 @@ All of them match the consumer attributes:
     def "selects configuration when it has more attributes than the resolved configuration"() {
         given:
         createDirs("a", "b")
-        createDirs("a", "b")
         file('settings.gradle') << "include 'a', 'b'"
         buildFile << """
             $typeDefs

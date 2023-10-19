@@ -178,9 +178,7 @@ class ArtifactTransformCachingIntegrationTest extends AbstractHttpDependencyReso
                 }
             }
         """ << withFileLibDependency("lib1.jar", projectDir)
-        projectDir.createDir("lib")
-        projectDir.createDir("util")
-        projectDir.createDir("app")
+        projectDir.createDirs("lib", "util", "app")
         projectDir.file("settings.gradle") << """
             rootProject.name = 'root'
             include 'lib'
@@ -931,9 +929,7 @@ class ArtifactTransformCachingIntegrationTest extends AbstractHttpDependencyReso
         [projectDir1, projectDir2].each { dir ->
             def project = new BuildTestFile(dir, "root")
             project.with {
-                dir.createDir("lib")
-                dir.createDir("util")
-                dir.createDir("app")
+                dir.createDirs("lib", "util", "app")
                 settingsFile << """
                     rootProject.name = 'root'
                     include 'lib'

@@ -31,11 +31,15 @@ class SettingsIncludeManyIntegrationTest extends AbstractIntegrationSpec {
         "\"$it\""
     }.join(", ")
 
-    @Requires(UnitTestPreconditions.IsGroovy3)
-    def "including over 250 projects is not possible via varargs in Groovy 3"() {
-        createDirs(projectNames.take(254).collect({ name ->
+    private def createProjectDirectories(int count, String includeFunction) {
+        createDirs(projectNames.take(count).collect({ name ->
             includeFunction == 'includeFlat' ? "../" + name : name
         }) as String[])
+    }
+
+    @Requires(UnitTestPreconditions.IsGroovy3)
+    def "including over 250 projects is not possible via varargs in Groovy 3"() {
+        createProjectDirectories(254, includeFunction)
         // Groovy doesn't even support >=255 args at compilation, so to trigger the right error
         // 254 projects must be used instead.
         settingsFile << """
@@ -54,9 +58,7 @@ class SettingsIncludeManyIntegrationTest extends AbstractIntegrationSpec {
 
     @Requires(UnitTestPreconditions.IsGroovy4)
     def "including over 250 projects is not possible via varargs in Groovy 4"() {
-        createDirs(projectNames.take(254).collect({ name ->
-            includeFunction == 'includeFlat' ? "../" + name : name
-        }) as String[])
+        createProjectDirectories(254, includeFunction)
         // Groovy doesn't even support >=255 args at compilation, so to trigger the right error
         // 254 projects must be used instead.
         settingsFile << """
@@ -76,9 +78,7 @@ class SettingsIncludeManyIntegrationTest extends AbstractIntegrationSpec {
 
     @Requires(UnitTestPreconditions.IsGroovy3)
     def "including large amounts of projects is not possible via varargs in Groovy 3"() {
-        createDirs(projectNames.collect({ name ->
-            includeFunction == 'includeFlat' ? "../" + name : name
-        }) as String[])
+        createProjectDirectories(projectNames.size(), includeFunction)
         settingsFile << """
             rootProject.name = 'root'
             $includeFunction $projectNamesCommaSeparated
@@ -98,9 +98,7 @@ class SettingsIncludeManyIntegrationTest extends AbstractIntegrationSpec {
 
     @Requires(UnitTestPreconditions.IsGroovy4)
     def "including large amounts of projects is not possible via varargs in Groovy 4"() {
-        createDirs(projectNames.collect({ name ->
-            includeFunction == 'includeFlat' ? "../" + name : name
-        }) as String[])
+        createProjectDirectories(projectNames.size(), includeFunction)
         settingsFile << """
             rootProject.name = 'root'
             $includeFunction $projectNamesCommaSeparated
@@ -120,9 +118,7 @@ class SettingsIncludeManyIntegrationTest extends AbstractIntegrationSpec {
     }
 
     def "including large amounts of projects is possible via a List in Groovy"() {
-        createDirs(projectNames.collect({ name ->
-            includeFunction == 'includeFlat' ? "../" + name : name
-        }) as String[])
+        createProjectDirectories(projectNames.size(), includeFunction)
         settingsFile << """
             rootProject.name = 'root'
             $includeFunction([$projectNamesCommaSeparated])
@@ -141,9 +137,7 @@ class SettingsIncludeManyIntegrationTest extends AbstractIntegrationSpec {
     }
 
     def "including large amounts of projects is possible via varargs in Kotlin"() {
-        createDirs(projectNames.collect({ name ->
-            includeFunction == 'includeFlat' ? "../" + name : name
-        }) as String[])
+        createProjectDirectories(projectNames.size(), includeFunction)
         settingsKotlinFile << """
             rootProject.name = "root"
             $includeFunction($projectNamesCommaSeparated)
@@ -162,9 +156,7 @@ class SettingsIncludeManyIntegrationTest extends AbstractIntegrationSpec {
     }
 
     def "including large amounts of projects is possible via a List in Kotlin"() {
-        createDirs(projectNames.collect({ name ->
-            includeFunction == 'includeFlat' ? "../" + name : name
-        }) as String[])
+        createProjectDirectories(projectNames.size(), includeFunction)
         settingsKotlinFile << """
             rootProject.name = "root"
             $includeFunction(listOf($projectNamesCommaSeparated))

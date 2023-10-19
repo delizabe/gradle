@@ -114,7 +114,7 @@ Required by:
 
     @ToBeFixedForConfigurationCache
     def "includes build identifier in dependency resolution results with #display"() {
-        repo.file("a/.gitkeepdir").touch() // git does not track empty directories
+        repo.file("a/.gitkeepdir").touch()
         repo.file("settings.gradle") << """
             ${settings}
             include 'a'
