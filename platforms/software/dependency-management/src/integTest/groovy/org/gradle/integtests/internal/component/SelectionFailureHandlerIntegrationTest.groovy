@@ -72,6 +72,21 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
         failure.assertHasCause("Could not resolve project :.")
         failure.assertHasErrorOutput("Incompatible because this component declares attribute 'color' with value 'blue' and the consumer needed attribute 'color' with value 'green'")
     }
+
+    def "demonstrate no matching graph variants selection failure for externalDep"() {
+        buildKotlinFile << """
+            ${setupNoMatchingGraphVariantsSelectionFailureForExternalDep()}
+            ${forceConsumerResolution()}
+        """
+
+        expect:
+        fails "forceResolution", "--stacktrace"
+        failure.assertHasErrorOutput("Caused by: " + NoMatchingGraphVariantsException.class.getName())
+        failure.assertHasDescription("Execution failed for task ':forceResolution'.")
+        failure.assertHasCause("Could not resolve all files for configuration ':resolveMe'.")
+        failure.assertHasCause("Could not resolve com.squareup.okhttp3:okhttp:4.4.0.")
+        failure.assertHasErrorOutput("No matching variant of com.squareup.okhttp3:okhttp:4.4.0 was found. The consumer was configured to find attribute 'org.gradle.category' with value 'non-existent-format' but:")
+    }
     // endregion resolution failures
 
     // region dependencyInsight failures
@@ -167,6 +182,27 @@ class SelectionFailureHandlerIntegrationTest extends AbstractIntegrationSpec {
 
             dependencies {
                 add("defaultDependencies", project(":"))
+            }
+        """
+    }
+
+    private String setupNoMatchingGraphVariantsSelectionFailureForExternalDep() {
+        return """
+            ${mavenCentralRepository(GradleDsl.KOTLIN)}
+
+            configurations {
+                dependencyScope("myLibs")
+
+                resolvable("resolveMe") {
+                    extendsFrom(configurations.getByName("myLibs"))
+                    attributes {
+                        attribute(Category.CATEGORY_ATTRIBUTE, project.objects.named(Category::class.java, "non-existent-format"))
+                    }
+                }
+            }
+
+            dependencies {
+                add("myLibs", "com.squareup.okhttp3:okhttp:4.4.0")
             }
         """
     }
