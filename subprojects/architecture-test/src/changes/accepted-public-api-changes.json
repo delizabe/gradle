@@ -2274,6 +2274,17 @@
             "acceptation": "Adding generated Kotlin DSL extensions for Gradle API to the binary compatibility check",
             "changes": [
                 "Method added to public class"
+            ]
+        },
+        {
+            "type": "org.gradle.kotlin.dsl.GradleApiKotlinDslExtensions9Kt",
+            "member": "Method org.gradle.kotlin.dsl.GradleApiKotlinDslExtensions9Kt.register(org.gradle.jvm.toolchain.JavaToolchainResolverRegistry,kotlin.reflect.KClass)",
+            "acceptation": "Adding generated Kotlin DSL extensions for Gradle API to the binary compatibility check",
+            "changes": [
+                "Method added to public class"
+            ]
+        },
+        {
             "type": "org.gradle.api.provider.HasMultipleValues",
             "member": "Class org.gradle.api.provider.HasMultipleValues",
             "acceptation": "YOLO",
