@@ -297,7 +297,7 @@ trait TestProjectInitiation {
     List<TestFile> createDirs(String... dirs) {
         dirs.collect({ name ->
             TestFile tf = file(name)
-            tf.mkdir()
+            tf.mkdirs()
             return tf
         })
     }
