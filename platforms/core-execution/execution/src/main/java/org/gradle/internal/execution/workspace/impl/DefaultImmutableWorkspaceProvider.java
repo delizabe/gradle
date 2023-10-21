@@ -45,8 +45,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import static org.gradle.cache.FileLockManager.LockMode.None;
 import static org.gradle.cache.FileLockManager.LockMode.OnDemandExclusive;
+import static org.gradle.cache.FileLockManager.LockMode.OnDemandShared;
 import static org.gradle.cache.internal.filelock.LockOptionsBuilder.mode;
 
 public class DefaultImmutableWorkspaceProvider implements WorkspaceProvider, Closeable {
@@ -150,7 +150,7 @@ public class DefaultImmutableWorkspaceProvider implements WorkspaceProvider, Clo
     ) {
         PersistentCache cache = cacheBuilder
             .withCleanupStrategy(createCacheCleanupStrategy(fileAccessTimeJournal, treeDepthToTrackAndCleanup, cacheConfigurations))
-            .withLockOptions(mode(None))
+            .withLockOptions(mode(OnDemandShared))
             .open();
         this.finnerCacheFactory = finnerCacheFactory;
         this.finnerCacheMap = new ConcurrentHashMap<>();
@@ -179,13 +179,15 @@ public class DefaultImmutableWorkspaceProvider implements WorkspaceProvider, Clo
 
     @Override
     public <T> T withWorkspace(String path, WorkspaceAction<T> action) {
-        File workspace = new File(baseDirectory, path);
-        GFileUtils.mkdirs(workspace);
-        @SuppressWarnings("resource")
-        PersistentCache finnerCache = finnerCacheMap.computeIfAbsent(path, this::acquireFinnerCache);
-        return finnerCache.withFileLock(() -> {
-            fileAccessTracker.markAccessed(workspace);
-            return action.executeInWorkspace(workspace, executionHistoryStore);
+        return cache.withFileLock(() -> {
+            File workspace = new File(baseDirectory, path);
+            GFileUtils.mkdirs(workspace);
+            @SuppressWarnings("resource")
+            PersistentCache finnerCache = finnerCacheMap.computeIfAbsent(path, this::acquireFinnerCache);
+            return finnerCache.withFileLock(() -> {
+                fileAccessTracker.markAccessed(workspace);
+                return action.executeInWorkspace(workspace, executionHistoryStore);
+            });
         });
     }
 

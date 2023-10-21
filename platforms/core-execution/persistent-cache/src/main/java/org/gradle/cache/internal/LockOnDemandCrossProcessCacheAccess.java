@@ -132,8 +132,8 @@ public class LockOnDemandCrossProcessCacheAccess extends AbstractCrossProcessCac
             lockCount--;
             if (lockCount == 0) {
                 if (lockOptions.getMode() == Shared) {
-                    // Shared locks are released immediately
-                    // TODO: Why?
+                    // Shared locks are released immediately,
+                    // since currently we don't have an implementation of an protocol to ping a process with a shared lock to release it
                     releaseLockIfHeld();
                 } else if (lockReleaseSignal != null) {
                     // Exclusive locks are released when someone needs access to it
