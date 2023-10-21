@@ -130,15 +130,9 @@ public class LockOnDemandCrossProcessCacheAccess extends AbstractCrossProcessCac
                 throw new IllegalStateException("Mismatched lock count.");
             }
             lockCount--;
-            if (lockCount == 0) {
-                if (lockOptions.getMode() == Shared) {
-                    // Shared locks are released immediately,
-                    // since currently we don't have an implementation of an protocol to ping a process with a shared lock to release it
-                    releaseLockIfHeld();
-                } else if (lockReleaseSignal != null) {
-                    // Exclusive locks are released when someone needs access to it
-                    releaseLockIfHeld();
-                }
+            if (lockCount == 0 && lockReleaseSignal != null) {
+                // Exclusive locks are released when someone needs access to it
+                releaseLockIfHeld();
             } // otherwise, keep lock open
         } finally {
             stateLock.unlock();
